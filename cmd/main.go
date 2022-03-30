@@ -1,7 +1,6 @@
 package main
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,26 +8,16 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
-	"time"
+
+	"github.com/JavaHutt/coinconv/internal/model"
+	"github.com/JavaHutt/coinconv/utils"
 )
 
 const conversionPath = "https://pro-api.coinmarketcap.com/v2/tools/price-conversion"
 
-func mustString(key string) string {
-	value, exists := os.LookupEnv(key)
-	if !exists {
-		log.Fatalf("required ENV %q is not set", key)
-	}
-	if value == "" {
-		log.Fatalf("required ENV %q is empty", key)
-	}
-	return value
-}
-
 func main() {
-	apiKey := mustString("API_KEY")
+	apiKey := utils.MustGetEnvString("API_KEY")
 	svc := NewService(*http.DefaultClient, apiKey)
 	value, err := svc.Convert("20.1", "USD", "BTC")
 	if err != nil {
@@ -68,11 +57,11 @@ func (s service) Convert(amount, from, to string) (float32, error) {
 	if resp.StatusCode != http.StatusOK {
 		return 0, getErrorMessage(resp.Body)
 	}
-	buff, err := getGzipBody(resp.Body)
+	buff, err := utils.ReadGzipBody(resp.Body)
 	if err != nil {
 		return 0, err
 	}
-	var decodedResponse SuccessfulResponse
+	var decodedResponse model.SuccessfulResponse
 	if err = json.Unmarshal(buff, &decodedResponse); err != nil {
 		return 0, err
 	}
@@ -100,7 +89,7 @@ func getErrorMessage(body io.ReadCloser) error {
 	if err != nil {
 		return err
 	}
-	var errorResponse ErrorResponse
+	var errorResponse model.ErrorResponse
 	if err = json.Unmarshal(buff, &errorResponse); err != nil {
 		return err
 	}
@@ -113,49 +102,4 @@ func validate(amount string) error {
 		return fmt.Errorf("bad amount value: %w", err)
 	}
 	return nil
-}
-
-func getGzipBody(body io.ReadCloser) ([]byte, error) {
-	reader, err := gzip.NewReader(body)
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-	buff, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	return buff, nil
-}
-
-type Status struct {
-	Timestamp    time.Time `json:"timestamp"`
-	ErrorCode    int       `json:"error_code"`
-	ErrorMessage string    `json:"error_message"`
-	Elapsed      int       `json:"elapsed"`
-	CreditCount  int       `json:"credit_count"`
-	Notice       string    `json:"notice"`
-}
-
-type Quote struct {
-	Price       float32   `json:"price"`
-	LsatUpdated time.Time `json:"last_updated"`
-}
-
-type DataItem struct {
-	ID          int              `json:"id"`
-	Symbol      string           `json:"symbol"`
-	Name        string           `json:"name"`
-	Amount      float32          `json:"amount"`
-	LastUpdated time.Time        `json:"last_updated"`
-	Quote       map[string]Quote `json:"quote"`
-}
-
-type SuccessfulResponse struct {
-	Status Status     `json:"status"`
-	Data   []DataItem `json:"data"`
-}
-
-type ErrorResponse struct {
-	Status Status `json:"status"`
 }
