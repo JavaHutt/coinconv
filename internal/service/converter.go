@@ -7,13 +7,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 
 	"github.com/JavaHutt/coinconv/internal/model"
 	"github.com/JavaHutt/coinconv/utils"
 )
 
 const (
+	testAPIKey     = "b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c"
 	conversionPath = "https://%s-api.coinmarketcap.com/v2/tools/price-conversion"
 	testPrefix     = "sandbox"
 	publicPrefix   = "pro"
@@ -23,28 +23,26 @@ type response interface {
 	GetPrice(from, to string) float32
 }
 
-type service struct {
+type converterService struct {
 	client   http.Client
 	apiKey   string
 	isTest   bool
 	endpoint string
 }
 
-func NewСonverterService(client http.Client, apiKey string, isTest bool) (*service, error) {
+func NewСonverterService(client http.Client, apiKey string, isTest bool) (*converterService, error) {
 	if !isTest && apiKey == "" {
 		return nil, fmt.Errorf("you need an api key to use PRO API version")
 	}
 	endpoint := fmt.Sprintf(conversionPath, publicPrefix)
 	if isTest {
 		endpoint = fmt.Sprintf(conversionPath, testPrefix)
+		apiKey = testAPIKey
 	}
-	return &service{client, apiKey, isTest, endpoint}, nil
+	return &converterService{client, apiKey, isTest, endpoint}, nil
 }
 
-func (s service) Convert(amount, from, to string) (float32, error) {
-	if err := validate(amount); err != nil {
-		return 0, err
-	}
+func (s converterService) Convert(amount, from, to string) (float32, error) {
 	req, err := http.NewRequest(http.MethodGet, s.endpoint, nil)
 	if err != nil {
 		return 0, err
@@ -85,14 +83,14 @@ func getResponse[V model.SuccessfulResponse | model.SuccessfulResponseTest](buff
 	return decodedResponse, nil
 }
 
-func (s service) withHeaders(req *http.Request) *http.Request {
+func (s converterService) withHeaders(req *http.Request) *http.Request {
 	req.Header.Set("Accepts", "application/json")
 	req.Header.Set("Accept-Encoding", "deflate, gzip")
 	req.Header.Add("X-CMC_PRO_API_KEY", s.apiKey)
 	return req
 }
 
-func (s service) withQuery(req *http.Request, amount, from, to string) *http.Request {
+func (s converterService) withQuery(req *http.Request, amount, from, to string) *http.Request {
 	q := url.Values{}
 	q.Add("amount", amount)
 	q.Add("symbol", from)
@@ -111,12 +109,4 @@ func getErrorMessage(body io.ReadCloser) error {
 		return err
 	}
 	return fmt.Errorf(errorResponse.Status.ErrorMessage)
-}
-
-func validate(amount string) error {
-	_, err := strconv.ParseFloat(amount, 10)
-	if err != nil {
-		return fmt.Errorf("bad amount value: %w", err)
-	}
-	return nil
 }

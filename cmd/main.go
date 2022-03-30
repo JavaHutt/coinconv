@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/JavaHutt/coinconv/internal/service"
 	"github.com/JavaHutt/coinconv/utils"
@@ -19,9 +19,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	value, err := convSvc.Convert("20.1", "USD", "BTC")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("converted value: ", value)
+	cmdSvc := service.NewCommandService(convSvc)
+	cmdSvc.Exec(os.Args)
 }
