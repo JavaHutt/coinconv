@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"unicode"
 
 	"github.com/JavaHutt/coinconv/internal/model"
 	"github.com/JavaHutt/coinconv/utils"
@@ -91,10 +92,14 @@ func (s converterService) withHeaders(req *http.Request) *http.Request {
 }
 
 func (s converterService) withQuery(req *http.Request, amount, from, to string) *http.Request {
+	convertHeader := "convert"
+	if unicode.IsDigit(rune(to[0])) {
+		convertHeader = "convert_id"
+	}
 	q := url.Values{}
 	q.Add("amount", amount)
 	q.Add("symbol", from)
-	q.Add("convert", to)
+	q.Add(convertHeader, to)
 	req.URL.RawQuery = q.Encode()
 	return req
 }
