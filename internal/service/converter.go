@@ -13,22 +13,39 @@ import (
 	"github.com/JavaHutt/coinconv/utils"
 )
 
-const conversionPath = "https://pro-api.coinmarketcap.com/v2/tools/price-conversion"
+const (
+	conversionPath = "https://%s-api.coinmarketcap.com/v2/tools/price-conversion"
+	testPrefix     = "sandbox"
+	publicPrefix   = "pro"
+)
 
-type service struct {
-	client http.Client
-	apiKey string
+type response interface {
+	GetPrice(from, to string) float32
 }
 
-func NewСonverterService(client http.Client, apiKey string) *service {
-	return &service{client, apiKey}
+type service struct {
+	client   http.Client
+	apiKey   string
+	isTest   bool
+	endpoint string
+}
+
+func NewСonverterService(client http.Client, apiKey string, isTest bool) (*service, error) {
+	if !isTest && apiKey == "" {
+		return nil, fmt.Errorf("you need an api key to use PRO API version")
+	}
+	endpoint := fmt.Sprintf(conversionPath, publicPrefix)
+	if isTest {
+		endpoint = fmt.Sprintf(conversionPath, testPrefix)
+	}
+	return &service{client, apiKey, isTest, endpoint}, nil
 }
 
 func (s service) Convert(amount, from, to string) (float32, error) {
 	if err := validate(amount); err != nil {
 		return 0, err
 	}
-	req, err := http.NewRequest(http.MethodGet, conversionPath, nil)
+	req, err := http.NewRequest(http.MethodGet, s.endpoint, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -46,11 +63,26 @@ func (s service) Convert(amount, from, to string) (float32, error) {
 	if err != nil {
 		return 0, err
 	}
-	var decodedResponse model.SuccessfulResponse
-	if err = json.Unmarshal(buff, &decodedResponse); err != nil {
+	var res response
+	if s.isTest {
+		if res, err = getResponse[model.SuccessfulResponseTest](buff); err != nil {
+			return 0, err
+		}
+		return res.GetPrice(from, to), nil
+	}
+
+	if res, err = getResponse[model.SuccessfulResponse](buff); err != nil {
 		return 0, err
 	}
-	return decodedResponse.Data[0].Quote[to].Price, nil
+	return res.GetPrice(from, to), nil
+}
+
+func getResponse[V model.SuccessfulResponse | model.SuccessfulResponseTest](buff []byte) (V, error) {
+	var decodedResponse V
+	if err := json.Unmarshal(buff, &decodedResponse); err != nil {
+		return decodedResponse, err
+	}
+	return decodedResponse, nil
 }
 
 func (s service) withHeaders(req *http.Request) *http.Request {

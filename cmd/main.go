@@ -9,9 +9,16 @@ import (
 	"github.com/JavaHutt/coinconv/utils"
 )
 
+var (
+	apiKey = utils.GetEnvString("API_KEY", "")
+	isTest = utils.GetBool("IS_TEST", false)
+)
+
 func main() {
-	apiKey := utils.MustGetEnvString("API_KEY")
-	convSvc := service.NewСonverterService(*http.DefaultClient, apiKey)
+	convSvc, err := service.NewСonverterService(*http.DefaultClient, apiKey, isTest)
+	if err != nil {
+		log.Fatal(err)
+	}
 	value, err := convSvc.Convert("20.1", "USD", "BTC")
 	if err != nil {
 		log.Fatal(err)
