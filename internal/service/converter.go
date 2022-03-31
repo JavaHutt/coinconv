@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	testAPIKey     = "b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c"
 	conversionPath = "https://%s-api.coinmarketcap.com/v2/tools/price-conversion"
 	testPrefix     = "sandbox"
 	publicPrefix   = "pro"
@@ -24,26 +23,25 @@ type response interface {
 	GetPrice(from, to string) float32
 }
 
-type converterService struct {
+type ConverterService struct {
 	client   http.Client
 	apiKey   string
 	isTest   bool
 	endpoint string
 }
 
-func NewСonverterService(client http.Client, apiKey string, isTest bool) (*converterService, error) {
+func NewСonverterService(client http.Client, apiKey string, isTest bool) (*ConverterService, error) {
 	if !isTest && apiKey == "" {
 		return nil, fmt.Errorf("you need an api key to use PRO API version")
 	}
 	endpoint := fmt.Sprintf(conversionPath, publicPrefix)
 	if isTest {
 		endpoint = fmt.Sprintf(conversionPath, testPrefix)
-		apiKey = testAPIKey
 	}
-	return &converterService{client, apiKey, isTest, endpoint}, nil
+	return &ConverterService{client, apiKey, isTest, endpoint}, nil
 }
 
-func (s converterService) Convert(amount, from, to string) (float32, error) {
+func (s ConverterService) Convert(amount, from, to string) (float32, error) {
 	req, err := http.NewRequest(http.MethodGet, s.endpoint, nil)
 	if err != nil {
 		return 0, err
@@ -84,22 +82,22 @@ func getResponse[V model.SuccessfulResponse | model.SuccessfulResponseTest](buff
 	return decodedResponse, nil
 }
 
-func (s converterService) withHeaders(req *http.Request) *http.Request {
+func (s ConverterService) withHeaders(req *http.Request) *http.Request {
 	req.Header.Set("Accepts", "application/json")
 	req.Header.Set("Accept-Encoding", "deflate, gzip")
 	req.Header.Add("X-CMC_PRO_API_KEY", s.apiKey)
 	return req
 }
 
-func (s converterService) withQuery(req *http.Request, amount, from, to string) *http.Request {
-	convertHeader := "convert"
+func (s ConverterService) withQuery(req *http.Request, amount, from, to string) *http.Request {
+	convertParam := "convert"
 	if unicode.IsDigit(rune(to[0])) {
-		convertHeader = "convert_id"
+		convertParam = "convert_id"
 	}
 	q := url.Values{}
 	q.Add("amount", amount)
 	q.Add("symbol", from)
-	q.Add(convertHeader, to)
+	q.Add(convertParam, to)
 	req.URL.RawQuery = q.Encode()
 	return req
 }

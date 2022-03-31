@@ -12,15 +12,15 @@ type converter interface {
 	Convert(amount, from, to string) (float32, error)
 }
 
-type commandService struct {
+type CommandService struct {
 	converterService converter
 }
 
-func NewCommandService(converterService converter) *commandService {
-	return &commandService{converterService}
+func NewCommandService(converterService converter) *CommandService {
+	return &CommandService{converterService}
 }
 
-func (s commandService) Exec(arguments []string) {
+func (s CommandService) Exec(arguments []string) {
 	if len(arguments) < 4 {
 		writeStandardMessage()
 		return
@@ -39,7 +39,7 @@ func (s commandService) Exec(arguments []string) {
 	s.writeResult(amount, from, to)
 }
 
-func (s commandService) writeResult(amount, from, to string) {
+func (s CommandService) writeResult(amount, from, to string) {
 	fmt.Printf("converting %s %s...\n", amount, from)
 	list := strings.Split(to, ",")
 	if len(list) == 0 {
