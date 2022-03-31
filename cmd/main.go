@@ -6,12 +6,11 @@ import (
 	"os"
 
 	"github.com/JavaHutt/coinconv/internal/service"
-	"github.com/JavaHutt/coinconv/utils"
 )
 
 var (
-	apiKey = utils.GetEnvString("API_KEY", "")
-	isTest = utils.GetBool("IS_TEST", false)
+	apiKey = "b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c"
+	isTest = true
 )
 
 func main() {
