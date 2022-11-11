@@ -8,13 +8,6 @@
 
 # Coin Converter
 
-## Task description
-
-Task description is in [DESCRIPTION.md](DESCRIPTION.md)
-
-## Solution note
-Since free plan has a restrictions to convert multiple currencies I've decided to perform multiple requests, so you're able to use comma-separate Codes or IDs from 3rd argument and onward :trophy:
-
 ## HOWTO
 
 - build the app
